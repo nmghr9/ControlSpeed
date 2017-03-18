@@ -2,6 +2,7 @@ import errno
 import fcntl
 import os
 
+
 class LockError(Exception):
     def __init__(self, message):
         Exception.__init__(self, message)
@@ -9,8 +10,9 @@ class LockError(Exception):
     def __repr__(self):
         return self.__class__.__name__ + '(' + repr(self.args[0]) + ')'
 
+
 class LocalMutex(object):
-    def __init__(self, path, wait = False, remove = True):
+    def __init__(self, path, wait=False, remove=True):
         object.__init__(self)
         self._path = path
         self._fd = None
@@ -18,7 +20,7 @@ class LocalMutex(object):
 
         while self._fd is None:
             # Open the file
-            fd = os.open(path, os.O_CREAT | os.O_WRONLY, 0666)
+            fd = os.open(path, os.O_CREAT | os.O_WRONLY, 0o666)
             try:
                 # Acquire an exclusive lock
                 if wait:
@@ -26,7 +28,7 @@ class LocalMutex(object):
                 else:
                     try:
                         fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    except IOError, e:
+                    except IOError as e:
                         if e.errno in (errno.EACCES, errno.EAGAIN):
                             raise LockError(
                                 'Lock file is held by another process: '
@@ -36,14 +38,13 @@ class LocalMutex(object):
 
                 try:
                     stat1 = os.stat(path)
-                except OSError, e:
+                except OSError as e:
                     if e.errno != errno.ENOENT:
                         raise
                 else:
                     stat2 = os.fstat(fd)
                     if stat1.st_dev == stat2.st_dev \
-                        and stat1.st_ino == stat2.st_ino:
-
+                            and stat1.st_ino == stat2.st_ino:
                         self._fd = fd
             finally:
                 # Close the file if it is not the required one
